@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Zocodover - Iniciar sesión</title>
+
+    <link
+        rel="stylesheet"
+        href="login.css"
+    >
+
+</head>
+
+
+<body>
+
+    <div class="login-container">
+
+        <div class="login-box">
+
+            <h1>Zocodover</h1>
+
+            <p class="subtitle">
+                Gestión de Clientes
+            </p>
+
+
+            <form id="loginForm">
+
+                <label>
+
+                    Correo electrónico
+
+                    <input
+                        type="email"
+                        id="email"
+                        required
+                        autocomplete="email"
+                    >
+
+                </label>
+
+
+                <label>
+
+                    Contraseña
+
+                    <input
+                        type="password"
+                        id="password"
+                        required
+                        autocomplete="current-password"
+                    >
+
+                </label>
+
+
+                <button
+                    type="submit"
+                    id="loginButton"
+                >
+                    Iniciar sesión
+                </button>
+
+
+                <p
+                    id="loginError"
+                    class="login-error"
+                ></p>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- Supabase -->
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+    <script>
+
+        // ========================================
+        // SUPABASE
+        // ========================================
+
+        const SUPABASE_URL =
+            "https://mgtnpbqnmytsfzjiuzea.supabase.co";
+
+
+        const SUPABASE_PUBLISHABLE_KEY =
+            "sb_publishable_mmHbZYe4ghfc4kfXJppwDQ_d7bgNzdd";
+
+
+        const supabaseClient =
+            window.supabase.createClient(
+                SUPABASE_URL,
+                SUPABASE_PUBLISHABLE_KEY
+            );
+
+
+        // ========================================
+        // ELEMENTOS
+        // ========================================
+
+        const loginForm =
+            document.getElementById(
+                "loginForm"
+            );
+
+
+        const loginButton =
+            document.getElementById(
+                "loginButton"
+            );
+
+
+        const loginError =
+            document.getElementById(
+                "loginError"
+            );
+
+
+        // ========================================
+        // COMPROBAR SESIÓN
+        // ========================================
+
+        async function checkSession() {
+
+            const {
+                data
+            } =
+                await supabaseClient.auth.getSession();
+
+
+            if (
+                data.session
+            ) {
+
+                window.location.href =
+                    "/index.html";
+
+            }
+
+        }
+
+
+        checkSession();
+
+
+        // ========================================
+        // LOGIN
+        // ========================================
+
+        loginForm.addEventListener(
+            "submit",
+            async function(event) {
+
+                event.preventDefault();
+
+
+                loginError.textContent =
+                    "";
+
+
+                const email =
+                    document
+                        .getElementById("email")
+                        .value
+                        .trim();
+
+
+                const password =
+                    document
+                        .getElementById("password")
+                        .value;
+
+
+                loginButton.disabled =
+                    true;
+
+
+                loginButton.textContent =
+                    "Iniciando sesión...";
+
+
+                const {
+                    error
+                } =
+                    await supabaseClient.auth.signInWithPassword({
+
+                        email:
+                            email,
+
+                        password:
+                            password
+
+                    });
+
+
+                if (error) {
+
+                    console.error(error);
+
+
+                    loginError.textContent =
+                        "Correo o contraseña incorrectos.";
+
+
+                    loginButton.disabled =
+                        false;
+
+
+                    loginButton.textContent =
+                        "Iniciar sesión";
+
+
+                    return;
+
+                }
+
+
+                window.location.href =
+                    "/index.html";
+
+            }
+        );
+
+    </script>
+
+</body>
+
+</html>

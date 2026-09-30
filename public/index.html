@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Zocodover</title>
+
+    <link
+        rel="stylesheet"
+        href="styles.css"
+    >
+
+</head>
+
+
+<body>
+
+<header>
+
+    <h1>Zocodover</h1>
+
+    <p>Gestión de Clientes</p>
+
+</header>
+
+
+<main>
+
+
+    <!-- =================================
+         BARRA SUPERIOR
+    ================================== -->
+
+    <section class="toolbar">
+
+        <input
+            type="text"
+            id="searchInput"
+            placeholder="Buscar por nombre o RUT..."
+        >
+
+
+        <div class="toolbar-right">
+
+            <select id="sortSelect">
+
+                <option value="name-asc">
+                    Nombre A → Z
+                </option>
+
+                <option value="name-desc">
+                    Nombre Z → A
+                </option>
+
+                <option value="expiration-asc">
+                    Expiración más próxima
+                </option>
+
+                <option value="expiration-desc">
+                    Expiración más lejana
+                </option>
+
+                <option value="start-asc">
+                    Inicio más antiguo
+                </option>
+
+                <option value="start-desc">
+                    Inicio más reciente
+                </option>
+
+                <option value="renewals-desc">
+                    Más renovaciones
+                </option>
+
+                <option value="renewals-asc">
+                    Menos renovaciones
+                </option>
+
+            </select>
+
+
+            <button
+                id="addClientButton"
+                type="button"
+            >
+                + Agregar cliente
+            </button>
+
+        </div>
+
+    </section>
+
+
+ <section class="clients">
+
+    <div class="section-header">
+        <h2>Contratos</h2>
+    </div>
+
+    <div class="tabs">
+
+        <button class="tab-button active"
+                data-tab="activeContracts">
+
+            Contratos Activos
+
+            <span
+                id="openContractsCount"
+                class="count"
+            >
+                0
+            </span>
+
+        </button>
+
+        <button class="tab-button"
+                data-tab="closedContracts">
+
+            Contratos Cerrados
+
+            <span
+                id="closedContractsCount"
+                class="count"
+            >
+                0
+            </span>
+
+        </button>
+
+    </div>
+
+
+    <!-- ===============================
+         CONTRATOS ACTIVOS
+    ================================ -->
+
+    <div id="activeContracts" class="tab-content active">
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>RUT</th>
+                        <th>Estado</th>
+                        <th>Inicio</th>
+                        <th>Termino</th>
+                        <th>Plan</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+
+                <tbody id="clientTable"></tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <!-- ===============================
+         CONTRATOS CERRADOS
+    ================================ -->
+
+    <div id="closedContracts" class="tab-content">
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>RUT</th>
+                        <th>Estado</th>
+                        <th>Inicio</th>
+                        <th>Termino</th>
+                        <th>Plan</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+
+                <tbody id="closedClientTable"></tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+</main>
+
+
+<!-- =====================================
+     MODAL CLIENTE
+====================================== -->
+
+<div
+    id="clientModal"
+    class="modal"
+>
+
+    <div class="modal-content">
+
+        <h2 id="modalTitle">
+            Agregar cliente
+        </h2>
+
+
+        <form id="clientForm">
+
+
+            <!-- NOMBRE -->
+
+            <label>
+
+                Nombre
+
+                <input
+                    type="text"
+                    id="name"
+                    required
+                >
+
+            </label>
+
+
+            <!-- RUT -->
+
+            <label>
+
+                RUT
+
+                <input
+                    type="text"
+                    id="rut"
+                    placeholder="12.345.678-5"
+                    maxlength="12"
+                    required
+                >
+
+            </label>
+
+
+            <!-- REPRESENTANTE -->
+
+            <label>
+
+                Representante legal
+
+                <input
+                    type="text"
+                    id="legalRepresentative"
+                    placeholder="Nombre del representante"
+                >
+
+            </label>
+
+
+            <!-- CORREOS -->
+
+            <label>
+
+                Correo(s) de la empresa
+
+                <textarea
+                    id="companyEmails"
+                    placeholder="correo@empresa.cl&#10;otro@empresa.cl"
+                    rows="4"
+                ></textarea>
+
+                <small class="status-help">
+
+                    Puedes ingresar varios correos,
+                    uno por línea.
+
+                </small>
+
+            </label>
+
+
+            <!-- INICIO -->
+
+            <label>
+
+                Inicio
+
+                <input
+                    type="date"
+                    id="startDate"
+                    required
+                >
+
+            </label>
+
+
+            <!-- EXPIRACIÓN -->
+
+            <label>
+
+                Expiración
+
+                <input
+                    type="date"
+                    id="expirationDate"
+                    required
+                >
+
+            </label>
+
+
+            <!-- PLAN -->
+
+            <label>
+
+                Plan
+
+                <select
+                    id="plan"
+                    required
+                >
+
+                    <option
+                        value=""
+                        disabled
+                        selected
+                    >
+                        Seleccionar plan
+                    </option>
+
+                    <option value="TRIBUTARIO ANUAL">
+                        TRIBUTARIO ANUAL
+                    </option>
+
+                    <option value="COMERCIAL ANUAL">
+                        COMERCIAL ANUAL
+                    </option>
+
+                    <option value="FULL ANUAL">
+                        FULL ANUAL
+                    </option>
+                    <option value="COMERCIAL SEMESTRAL">
+                        COMERCIAL SEMESTRAL
+                    </option>
+
+                    <option value="TRIBUTARIO SEMESTRAL">
+                        TRIBUTARIO SEMESTRAL
+                    </option>
+
+                </select>
+
+            </label>
+
+
+            <!-- ESTADO -->
+
+            <label>
+
+                Estado del contrato
+
+                <select id="status">
+
+                    <option value="AUTO">
+                        Automático
+                    </option>
+
+                    <option value="CERRADO">
+                        CERRADO
+                    </option>
+
+                </select>
+
+                <small class="status-help">
+
+                    Automático mantiene el contrato
+                    en Contratos Abiertos.
+
+                    CERRADO lo mueve a
+                    Contratos Cerrados.
+
+                </small>
+
+            </label>
+
+
+            <!-- BOTONES -->
+
+            <div class="form-buttons">
+
+                <button
+                    type="button"
+                    id="cancelButton"
+                >
+                    Cancelar
+                </button>
+
+
+                <button
+                    type="submit"
+                    class="save-button"
+                >
+                    Guardar
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================
+     MODAL RENOVACIÓN
+====================================== -->
+
+<div
+    id="renewModal"
+    class="modal"
+>
+
+    <div class="modal-content">
+
+        <h2>
+            Renovar contrato
+        </h2>
+
+
+        <p id="renewClientName"></p>
+
+
+        <p class="renew-info">
+
+            Expiración actual:
+
+            <strong id="renewCurrentExpiration">
+            </strong>
+
+        </p>
+
+
+        <label>
+
+            Nueva fecha de expiración
+
+            <input
+                type="date"
+                id="newExpirationDate"
+                required
+            >
+
+        </label>
+
+
+        <div class="form-buttons">
+
+            <button
+                type="button"
+                id="cancelRenewButton"
+            >
+                Cancelar
+            </button>
+
+
+            <button
+                type="button"
+                id="confirmRenewButton"
+                class="save-button"
+            >
+                Renovar contrato
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================
+     SUPABASE
+====================================== -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+<script>
+
+    const SUPABASE_URL =
+        "https://mgtnpbqnmytsfzjiuzea.supabase.co";
+
+
+    const SUPABASE_PUBLISHABLE_KEY =
+        "sb_publishable_mmHbZYe4ghfc4kfXJppwDQ_d7bgNzdd";
+
+
+    const supabaseClient =
+        window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_PUBLISHABLE_KEY
+        );
+
+
+    async function checkAuthentication() {
+
+        const {
+            data
+        } =
+            await supabaseClient.auth.getSession();
+
+
+        if (!data.session) {
+
+            window.location.href =
+                "/login.html";
+
+            return false;
+
+        }
+
+
+        return true;
+
+    }
+
+
+    checkAuthentication()
+        .then(isAuthenticated => {
+
+            if (isAuthenticated) {
+
+                const script =
+                    document.createElement("script");
+
+                script.src =
+                    "app.js";
+
+                document.body.appendChild(
+                    script
+                );
+
+            }
+
+        });
+
+</script>
+
+
+</body>
+
+</html>
