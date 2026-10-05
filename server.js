@@ -1,4 +1,3 @@
-```js
 const express = require("express");
 const mysql = require("mysql2/promise");
 const path = require("path");
@@ -15,7 +14,7 @@ const PORT = process.env.PORT || 3000;
 // ========================================
 
 app.use(cors());
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json());
 
 app.use(
     express.static(
@@ -57,16 +56,16 @@ const pool = mysql.createPool({
 
 async function testDatabase() {
 
+    let connection;
+
     try {
 
-        const connection =
+        connection =
             await pool.getConnection();
 
         await connection.query(
             "SELECT NOW()"
         );
-
-        connection.release();
 
         console.log(
             "Base de datos MySQL conectada correctamente."
@@ -80,6 +79,14 @@ async function testDatabase() {
             "Error conectando a MySQL:",
             error
         );
+
+    }
+
+    finally {
+
+        if (connection) {
+            connection.release();
+        }
 
     }
 
@@ -97,6 +104,10 @@ function formatClient(client) {
     let companyEmails =
         client.company_emails;
 
+
+    // MySQL JSON puede llegar como objeto,
+    // array o como texto JSON.
+
     if (
         typeof companyEmails === "string"
     ) {
@@ -108,7 +119,7 @@ function formatClient(client) {
 
         }
 
-        catch {
+        catch (error) {
 
             companyEmails = [];
 
@@ -116,12 +127,9 @@ function formatClient(client) {
 
     }
 
-    if (
-        !Array.isArray(companyEmails)
-    ) {
 
+    if (!Array.isArray(companyEmails)) {
         companyEmails = [];
-
     }
 
 
@@ -172,7 +180,7 @@ app.get(
         try {
 
             const [rows] =
-                await pool.query(`
+                await pool.execute(`
 
                     SELECT
                         id,
@@ -323,9 +331,7 @@ app.post(
                         legalRepresentative ||
                             null,
 
-                        JSON.stringify(
-                            emails
-                        ),
+                        JSON.stringify(emails),
 
                         startDate,
 
@@ -378,8 +384,7 @@ app.post(
 
 
             if (
-                error.code ===
-                "ER_DUP_ENTRY"
+                error.code === "ER_DUP_ENTRY"
             ) {
 
                 return res.status(400).json({
@@ -504,9 +509,7 @@ app.put(
                         legalRepresentative ||
                             null,
 
-                        JSON.stringify(
-                            emails
-                        ),
+                        JSON.stringify(emails),
 
                         startDate,
 
@@ -575,8 +578,7 @@ app.put(
 
 
             if (
-                error.code ===
-                "ER_DUP_ENTRY"
+                error.code === "ER_DUP_ENTRY"
             ) {
 
                 return res.status(400).json({
@@ -613,8 +615,7 @@ app.post(
         const clientId =
             req.params.id;
 
-        const connection =
-            await pool.getConnection();
+        let connection;
 
 
         try {
@@ -634,6 +635,10 @@ app.post(
                 });
 
             }
+
+
+            connection =
+                await pool.getConnection();
 
 
             await connection.beginTransaction();
@@ -835,17 +840,22 @@ app.post(
 
         catch (error) {
 
-            try {
+            if (connection) {
 
-                await connection.rollback();
+                try {
 
-            }
+                    await connection.rollback();
 
-            catch (rollbackError) {
+                }
 
-                console.error(
-                    rollbackError
-                );
+                catch (rollbackError) {
+
+                    console.error(
+                        "Error haciendo rollback:",
+                        rollbackError
+                    );
+
+                }
 
             }
 
@@ -867,7 +877,9 @@ app.post(
 
         finally {
 
-            connection.release();
+            if (connection) {
+                connection.release();
+            }
 
         }
 
@@ -913,7 +925,9 @@ app.get(
                 );
 
 
-            res.json(rows);
+            res.json(
+                rows
+            );
 
         }
 
@@ -1014,40 +1028,147 @@ app.delete(
 // TEMPORARY MIGRATION
 // ========================================
 //
-// ESTA RUTA ES TEMPORAL.
+// ESTE ENDPOINT ES SOLO PARA MIGRAR
+// LOS CLIENTES DESDE SUPABASE.
 //
-// Sirve para importar los 152 clientes
-// desde clients_rows.csv.
+// DESPUES DE TERMINAR LA MIGRACION,
+// HAY QUE BORRAR TODO ESTE BLOQUE.
 //
-// Después de terminar la migración,
-// ELIMINAREMOS COMPLETAMENTE ESTA RUTA.
-//
+// ========================================
 
 const MIGRATION_KEY =
     process.env.MIGRATION_KEY;
 
 
-// IMPORT CLIENTS
+// ========================================
+// MIGRATION STATUS
+// ========================================
+
+app.get(
+    "/api/migration/status",
+    async (req, res) => {
+
+        try {
+
+            if (!MIGRATION_KEY) {
+
+                return res.status(500).json({
+
+                    error:
+                        "MIGRATION_KEY no está configurada."
+
+                });
+
+            }
+
+
+            if (
+                req.headers["x-migration-key"] !==
+                MIGRATION_KEY
+            ) {
+
+                return res.status(401).json({
+
+                    error:
+                        "Clave de migración incorrecta."
+
+                });
+
+            }
+
+
+            const [clientRows] =
+                await pool.execute(`
+
+                    SELECT
+                        COUNT(*) AS total
+
+                    FROM clients
+
+                `);
+
+
+            const [renewalRows] =
+                await pool.execute(`
+
+                    SELECT
+                        COUNT(*) AS total
+
+                    FROM contract_renewals
+
+                `);
+
+
+            res.json({
+
+                success: true,
+
+                clients:
+                    Number(
+                        clientRows[0].total
+                    ),
+
+                renewals:
+                    Number(
+                        renewalRows[0].total
+                    )
+
+            });
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Error consultando estado de migración:",
+                error
+            );
+
+
+            res.status(500).json({
+
+                error:
+                    "Error consultando estado de migración."
+
+            });
+
+        }
+
+    }
+);
+
+
+// ========================================
+// MIGRATE CLIENTS
+// ========================================
+
 app.post(
     "/api/migration/clients",
     async (req, res) => {
 
         try {
 
-            // ------------------------------------
-            // SECURITY CHECK
-            // ------------------------------------
+            if (!MIGRATION_KEY) {
+
+                return res.status(500).json({
+
+                    error:
+                        "MIGRATION_KEY no está configurada."
+
+                });
+
+            }
+
 
             if (
-                !MIGRATION_KEY ||
                 req.headers["x-migration-key"] !==
-                    MIGRATION_KEY
+                MIGRATION_KEY
             ) {
 
                 return res.status(401).json({
 
                     error:
-                        "Unauthorized."
+                        "Clave de migración incorrecta."
 
                 });
 
@@ -1065,16 +1186,11 @@ app.post(
                 return res.status(400).json({
 
                     error:
-                        "El campo clients debe ser un arreglo."
+                        "El campo 'clients' debe ser un array."
 
                 });
 
             }
-
-
-            console.log(
-                `Iniciando migración de ${clients.length} clientes...`
-            );
 
 
             let inserted = 0;
@@ -1082,41 +1198,25 @@ app.post(
             let skipped = 0;
 
 
-            // ------------------------------------
-            // INSERT CLIENTS
-            // ------------------------------------
-
             for (
                 const client of clients
             ) {
 
-                if (
-                    !client.id ||
-                    !client.name ||
-                    !client.rut
-                ) {
-
-                    console.warn(
-                        "Cliente omitido por datos incompletos:",
-                        client
-                    );
-
-                    skipped++;
-
-                    continue;
-
-                }
-
-
-                const emails =
-                    Array.isArray(
-                        client.company_emails
-                    )
-                        ? client.company_emails
-                        : [];
-
-
                 try {
+
+                    const companyEmails =
+                        Array.isArray(
+                            client.company_emails
+                        )
+                            ? client.company_emails
+                            : (
+                                Array.isArray(
+                                    client.companyEmails
+                                )
+                                    ? client.companyEmails
+                                    : []
+                            );
+
 
                     await pool.execute(
 
@@ -1171,34 +1271,42 @@ app.post(
                             client.payment ||
                                 "AL DIA",
 
-                            client.start_date,
+                            client.start_date ||
+                                client.startDate,
 
-                            client.expiration_date,
+                            client.expiration_date ||
+                                client.expirationDate,
 
                             client.plan,
 
                             client.manual_status ||
+                                client.manualStatus ||
                                 "AUTO",
 
                             client.created_at ||
+                                client.createdAt ||
                                 null,
 
                             client.updated_at ||
+                                client.updatedAt ||
                                 null,
 
                             client.legal_representative ||
+                                client.legalRepresentative ||
                                 null,
 
                             JSON.stringify(
-                                emails
+                                companyEmails
                             ),
 
                             Number(
                                 client.renewal_count ||
+                                client.renewalCount ||
                                 0
                             ),
 
                             client.last_renewed_at ||
+                                client.lastRenewedAt ||
                                 null
 
                         ]
@@ -1212,58 +1320,32 @@ app.post(
 
                 catch (error) {
 
-                    // --------------------------------
-                    // DUPLICATE
-                    // --------------------------------
-
                     if (
                         error.code ===
                         "ER_DUP_ENTRY"
                     ) {
 
-                        console.log(
-                            `Cliente ya existe, omitido: ${client.id} - ${client.rut}`
-                        );
-
                         skipped++;
 
-                    }
-
-                    else {
-
-                        console.error(
-                            `Error insertando cliente ${client.id}:`,
-                            error
-                        );
-
-                        throw error;
+                        continue;
 
                     }
+
+
+                    throw error;
 
                 }
 
             }
 
 
-            // ------------------------------------
-            // FIX AUTO_INCREMENT
-            // ------------------------------------
-
-           
-
-
-            console.log(
-                `Migración terminada. Insertados: ${inserted}. Omitidos: ${skipped}.`
-            );
-
-
             res.json({
 
                 success: true,
 
-                inserted: inserted,
+                inserted,
 
-                skipped: skipped,
+                skipped,
 
                 totalReceived:
                     clients.length
@@ -1275,7 +1357,7 @@ app.post(
         catch (error) {
 
             console.error(
-                "ERROR EN MIGRACIÓN:",
+                "Error migrando clientes:",
                 error
             );
 
@@ -1283,99 +1365,10 @@ app.post(
             res.status(500).json({
 
                 error:
-                    "Error durante la migración.",
+                    "Error migrando clientes.",
 
-                details:
+                detail:
                     error.message
-
-            });
-
-        }
-
-    }
-);
-
-
-// ========================================
-// MIGRATION STATUS
-// ========================================
-//
-// Permite comprobar cuántos clientes
-// existen actualmente en MySQL.
-//
-
-app.get(
-    "/api/migration/status",
-    async (req, res) => {
-
-        try {
-
-            if (
-                !MIGRATION_KEY ||
-                req.headers["x-migration-key"] !==
-                    MIGRATION_KEY
-            ) {
-
-                return res.status(401).json({
-
-                    error:
-                        "Unauthorized."
-
-                });
-
-            }
-
-
-            const [clientRows] =
-                await pool.query(`
-
-                    SELECT
-                        COUNT(*) AS total
-
-                    FROM clients
-
-                `);
-
-
-            const [renewalRows] =
-                await pool.query(`
-
-                    SELECT
-                        COUNT(*) AS total
-
-                    FROM contract_renewals
-
-                `);
-
-
-            res.json({
-
-                clients:
-                    Number(
-                        clientRows[0].total
-                    ),
-
-                renewals:
-                    Number(
-                        renewalRows[0].total
-                    )
-
-            });
-
-        }
-
-        catch (error) {
-
-            console.error(
-                "Error comprobando migración:",
-                error
-            );
-
-
-            res.status(500).json({
-
-                error:
-                    "Error comprobando estado."
 
             });
 
@@ -1401,4 +1394,3 @@ app.listen(
 
     }
 );
-```
