@@ -643,28 +643,10 @@ function sortClients(clientList) {
                     );
 
 
-                case "renewals-desc":
-
-                    return (
-                        Number(
-                            b.renewalCount || 0
-                        ) -
-                        Number(
-                            a.renewalCount || 0
-                        )
-                    );
-
-
-                case "renewals-asc":
-
-                    return (
-                        Number(
-                            a.renewalCount || 0
-                        ) -
-                        Number(
-                            b.renewalCount || 0
-                        )
-                    );
+                case "rut-asc":
+                    return a.rut.localeCompare(b.rut, "es", {
+                        numeric: true
+                    });
 
 
                 default:

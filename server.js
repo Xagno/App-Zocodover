@@ -709,27 +709,26 @@ app.post(
             }
 
 
-            const previousExpiration =
-                String(
-                    current.expiration_date
-                ).substring(0, 10);
+            
+            const expirationValue = current.expiration_date;
 
+            const previousExpiration = expirationValue instanceof Date
+                ? `${expirationValue.getFullYear()}-${String(expirationValue.getMonth() + 1).padStart(2, "0")}-${String(expirationValue.getDate()).padStart(2, "0")}`
+                : String(expirationValue).substring(0, 10);
 
             if (
-                newExpirationDate <=
-                previousExpiration
+                !/^\d{4}-\d{2}-\d{2}$/.test(newExpirationDate) ||
+                newExpirationDate <= previousExpiration
             ) {
-
                 await connection.rollback();
 
                 return res.status(400).json({
-
-                    error:
-                        "La nueva fecha de expiración debe ser posterior a la actual."
-
+                    error: "La nueva fecha de expiración debe ser posterior a la actual.",
+                    fechaActual: previousExpiration,
+                    fechaNueva: newExpirationDate
                 });
-
             }
+
 
 
             // ====================================
